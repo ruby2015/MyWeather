@@ -2,6 +2,7 @@ package com.example.myweather;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
@@ -16,6 +17,7 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
+import java.lang.reflect.Field;
 import java.util.zip.GZIPInputStream;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -27,9 +29,10 @@ import org.xmlpull.v1.XmlPullParserFactory;
 import android.widget.Toast;
 import com.example.bean.TodayWeather;
 import com.example.util.NetUtil;
+import com.example.util.PinYin;
 
 public class MainActivity extends ActionBarActivity implements View.OnClickListener {
-    private ImageView mUpdateBtn,weatherImg,pmImg;
+    private ImageView mUpdateBtn,weatherImg,pmImg,mCitySelect;
     private TextView cityTv,timeTv,shiduTv,weekTv,pmTv,qualityTv,tempertureTv,tianqiTv,fengliTv;
 
     void initView(){
@@ -42,6 +45,8 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
         tempertureTv =(TextView) findViewById(R.id.content_temperature);
         tianqiTv =(TextView) findViewById(R.id.content_weather_describe1);
         fengliTv =(TextView) findViewById(R.id.content_weather_describe2);
+        weatherImg = (ImageView)findViewById(R.id.content_weather_pic);
+        pmImg = (ImageView)findViewById(R.id.content_pm_pic);
         cityTv.setText("N/A");
         timeTv.setText("N/A");
         shiduTv.setText("N/A");
@@ -58,8 +63,10 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
         setContentView(R.layout.weather_info);
         mUpdateBtn = (ImageView) findViewById(R.id.title_update_btn);
         mUpdateBtn.setOnClickListener(this);
+        mCitySelect = (ImageView)findViewById(R.id.title_city_manager);
+        mCitySelect.setOnClickListener(this);
         initView();
-        weatherImg = (ImageView)findViewById(R.id.title_share);
+        /*weatherImg = (ImageView)findViewById(R.id.title_share);
         weatherImg.setOnClickListener(new View.OnClickListener() {
 			
 			@Override
@@ -68,7 +75,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 				Intent intent = new Intent(MainActivity.this,ShareActivity.class);
 				startActivity(intent);
 			}
-		});
+		});*/
     }
 
 
@@ -113,6 +120,9 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
             Log.d("myweather", cityCode);
             queryWeatherCode(cityCode);
 
+            } else if(view.getId()== R.id.title_city_manager){
+            	Intent i = new Intent(this,SelectCity.class);
+            	startActivity(i);
             }
         }
 
@@ -297,16 +307,56 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
     }
 
     public void updateWeather(TodayWeather today) {
-        Log.d("xml",today.toString());
-        cityTv.setText(today.getCity());
-        timeTv.setText(today.getUpdatetime() + "发布");
-        shiduTv.setText("湿度：" + today.getHumidity());
-        pmTv.setText(today.getPm25());
-        qualityTv.setText(today.getQuality());
-        weekTv.setText(today.getDate());
-        tempertureTv.setText(today.getTemperature()+"℃"+"("+today.getLow() + "~" + today.getHigh()+")");
-        tianqiTv.setText(today.getClimate());
-        fengliTv.setText(today.getWind());
-        Toast.makeText(MainActivity.this,"更新成功",Toast.LENGTH_SHORT).show();
+    	int pm25 = Integer.parseInt(today.getPm25().trim());
+    	String pmImgStr = "0_50";
+    	if(pm25>50&&pm25<101){
+    		pmImgStr = "51_100";
+    	} else if(pm25>100&&pm25<151){
+    		pmImgStr = "101_150";
+    	} else if(pm25>150&&pm25<201){
+    		pmImgStr = "151_200";
+    	} else if(pm25>200&&pm25<301){
+    		pmImgStr = "201_300";
+    	} else if(pm25>300){
+    		pmImgStr = "greater_300";
+    	}
+    	String climateImg = "biz_plugin_weather_"+ PinYin.convertToPinYin(today.getClimate());
+    	pmImgStr = "biz_plugin_weather_"+pmImgStr;
+    	Class aClass = R.drawable.class;
+    	int pmId = -1;
+    	int climateId = -1;
+    	try{
+    		Field pmfield = aClass.getField(pmImgStr);
+    		Object pmValue = pmfield.get(new Integer(0));
+    		pmId = (Integer)pmValue;
+    		
+    		Field clfield = aClass.getField(climateImg);
+    		Object clValue = clfield.get(new Integer(0));
+    		climateId = (Integer)clValue;
+    	} catch(Exception e){
+    		if(-1==pmId){
+    			pmId = R.drawable.biz_plugin_weather_0_50;
+    		}
+    		if(-1==climateId){
+    			climateId = R.drawable.biz_plugin_weather_qing;
+    		}
+    	} finally{
+    		Drawable drawable = getResources().getDrawable(pmId);
+    		pmImg.setImageDrawable(drawable);
+    		drawable = getResources().getDrawable(climateId);
+    		weatherImg.setImageDrawable(drawable);
+    	
+	        Log.d("xml",today.toString());
+	        cityTv.setText(today.getCity());
+	        timeTv.setText(today.getUpdatetime() + "发布");
+	        shiduTv.setText("湿度：" + today.getHumidity());
+	        pmTv.setText(today.getPm25());
+	        qualityTv.setText(today.getQuality());
+	        weekTv.setText(today.getDate());
+	        tempertureTv.setText(today.getTemperature()+"℃"+"("+today.getLow() + "~" + today.getHigh()+")");
+	        tianqiTv.setText(today.getClimate());
+	        fengliTv.setText(today.getWind());
+	        Toast.makeText(MainActivity.this,"更新成功",Toast.LENGTH_SHORT).show();
+    	}
     }
 }
