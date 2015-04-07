@@ -18,6 +18,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.lang.reflect.Field;
+import java.util.List;
 import java.util.zip.GZIPInputStream;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -27,13 +28,17 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 import android.widget.Toast;
+
+import com.example.app.MyApplication;
+import com.example.bean.City;
 import com.example.bean.TodayWeather;
+import com.example.db.CityDB;
 import com.example.util.NetUtil;
 import com.example.util.PinYin;
 
 public class MainActivity extends ActionBarActivity implements View.OnClickListener {
     private ImageView mUpdateBtn,weatherImg,pmImg,mCitySelect;
-    private TextView cityTv,timeTv,shiduTv,weekTv,pmTv,qualityTv,tempertureTv,tianqiTv,fengliTv;
+    private TextView cityTv,timeTv,shiduTv,weekTv,pmTv,qualityTv,tempertureTv,tianqiTv,fengliTv,title_cityTv;
 
     void initView(){
         cityTv =(TextView) findViewById(R.id.content_city_name);
@@ -47,6 +52,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
         fengliTv =(TextView) findViewById(R.id.content_weather_describe2);
         weatherImg = (ImageView)findViewById(R.id.content_weather_pic);
         pmImg = (ImageView)findViewById(R.id.content_pm_pic);
+        title_cityTv = (TextView) findViewById(R.id.title_city_name);
         cityTv.setText("N/A");
         timeTv.setText("N/A");
         shiduTv.setText("N/A");
@@ -119,14 +125,27 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
             String cityCode = sharedPreferences.getString("main_city_code", "101010100");
             Log.d("myweather", cityCode);
             queryWeatherCode(cityCode);
-
             } else if(view.getId()== R.id.title_city_manager){
             	Intent i = new Intent(this,SelectCity.class);
-            	startActivity(i);
+            	startActivityForResult(i,1);           	
             }
         }
-
-
+    @Override
+    protected void onActivityResult(int requestCode,int resultCode,Intent data){
+    	if(requestCode==1 && resultCode==RESULT_OK){
+    		String str = data.getStringExtra("city");
+//    		Toast.makeText(this,str, Toast.LENGTH_SHORT).show();
+    		List<City> cityList = MyApplication.getCity();
+    		for(City city : cityList){
+    			if(city.getCity().equals(str)){
+    				String cityCode = city.getNumber();
+    				Log.d("CityCode",cityCode);
+    				queryWeatherCode(cityCode);
+    			} 
+    		}
+    		
+    	}
+    }
 
     public void queryWeatherCode(String cityCode) {
         final String address = "http://wthrcdn.etouch.cn/WeatherApi?citykey=" + cityCode;
@@ -210,7 +229,10 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
                     case XmlPullParser.START_DOCUMENT:
                         break;
                     case XmlPullParser.START_TAG:
-                        if (xmlPullParser.getName().equals("city")) {
+                    	if(xmlPullParser.getName().equals("error")){
+                        	todayWeather = null;
+                        	break;
+                        } else if (xmlPullParser.getName().equals("city")) {
                             eventType = xmlPullParser.next();
                             todayWeather.setCity(xmlPullParser.getText());
                             Log.d("city:", xmlPullParser.getText());
@@ -285,7 +307,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
                                 }
                             }
 */
-                        }
+                        } 
                         break;
                     case XmlPullParser.END_TAG:
                         break;
@@ -302,12 +324,17 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
             msg.obj=todayWeather;
             handler.sendMessage(msg);
             Log.d("ALL", todayWeather.toString());
-        }
+        } 
             return todayWeather;
     }
 
     public void updateWeather(TodayWeather today) {
-    	int pm25 = Integer.parseInt(today.getPm25().trim());
+    	int pm25;
+    	if(!today.getPm25().equals("N/A")){
+    		pm25 = Integer.parseInt(today.getPm25().trim());
+    	} else{
+    		pm25 = 0;
+    	}
     	String pmImgStr = "0_50";
     	if(pm25>50&&pm25<101){
     		pmImgStr = "51_100";
@@ -347,6 +374,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
     		weatherImg.setImageDrawable(drawable);
     	
 	        Log.d("xml",today.toString());
+	        title_cityTv.setText(today.getCity()+"天气");
 	        cityTv.setText(today.getCity());
 	        timeTv.setText(today.getUpdatetime() + "发布");
 	        shiduTv.setText("湿度：" + today.getHumidity());

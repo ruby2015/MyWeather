@@ -2,18 +2,18 @@ package com.example.bean;
 
 
 public class TodayWeather {
-    private String city;
-    private String updatetime;
-    private String temperature;
-    private String humidity;
-    private String pm25;
-    private String quality;
-    private String fengxiang;
-    private String wind;
-    private String date;
-    private String high;
-    private String low;
-    private String climate;
+    private String city="N/A";
+    private String updatetime="N/A";
+    private String temperature="N/A";
+    private String humidity="N/A";
+    private String pm25="N/A";
+    private String quality="N/A";
+    private String fengxiang="N/A";
+    private String wind="N/A";
+    private String date="N/A";
+    private String high="N/A";
+    private String low="N/A";
+    private String climate="N/A";
 
     public void setCity(String arg){
         city=arg;
